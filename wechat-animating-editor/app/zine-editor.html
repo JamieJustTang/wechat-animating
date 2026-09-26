@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>长卷 SVG zine 编辑器 · 微信向</title>
+<style>
+:root{
+  --bg:#f7f6f3; --panel:#fff; --ink:#1c1b18; --ink2:#5f5e5a; --ink3:#8b8983;
+  --line:#e2dfd7; --accent:#d4532a; --ok:#1d9e75; --warn:#ba7517; --err:#c0392b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:13px/1.6 'PingFang SC','Noto Sans CJK SC',system-ui,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--panel);
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+header h1{font-size:14px;font-weight:500;margin:0}
+.spacer{flex:1}
+button{font:inherit;font-size:12px;padding:5px 11px;border:1px solid var(--line);
+  background:var(--panel);border-radius:6px;cursor:pointer;color:var(--ink)}
+button:hover{border-color:var(--ink3)}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.wrap{display:grid;grid-template-columns:minmax(320px,1fr) 400px minmax(300px,1fr);
+  gap:12px;padding:12px;align-items:start}
+@media(max-width:1100px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.card>h2{font-size:12px;font-weight:500;color:var(--ink2);margin:0;padding:9px 12px;
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px}
+.card>h2 .spacer{flex:1}
+.pad{padding:10px 12px}
+textarea{width:100%;height:56vh;min-height:320px;border:0;resize:vertical;padding:10px 12px;
+  font:12px/1.55 Menlo,'Courier New',monospace;color:var(--ink);background:#fdfcf9;outline:none}
+.phone{background:#111;padding:14px 0;display:flex;justify-content:center}
+.viewport{width:375px;background:#fff;overflow:hidden;position:relative}
+.viewport.scrollbox{max-height:60vh;overflow-y:auto}
+.viewport svg{display:block;width:100%;height:auto}
+.bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-top:1px solid var(--line)}
+.bar input[type=range]{flex:1}
+.mono{font:11px/1.5 Menlo,'Courier New',monospace;color:var(--ink2)}
+ul.report{list-style:none;margin:0;padding:0;font-size:12px}
+ul.report li{padding:5px 12px;border-bottom:1px solid #f2f0eb;display:flex;gap:8px}
+ul.report li:last-child{border-bottom:0}
+.tag{flex:none;font:10px/1.5 Menlo,monospace;padding:1px 6px;border-radius:4px;
+  background:#f1efe8;color:var(--ink2)}
+.tag.e{background:#fbe9e7;color:var(--err)}
+.tag.w{background:#fdf3e0;color:var(--warn)}
+.tag.o{background:#e6f5ef;color:var(--ok)}
+.mgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.mcell{background:#f7f6f3;border-radius:8px;padding:8px 10px}
+.mcell b{display:block;font-size:18px;font-weight:500}
+.mcell span{font-size:11px;color:var(--ink2)}
+.empty{color:var(--ink3);font-size:12px;padding:16px 12px;text-align:center}
+#tl{width:100%;display:block}
+.hint{font-size:11px;color:var(--ink3);padding:8px 12px;line-height:1.7}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>长卷 SVG zine 编辑器</h1>
+  <span class="mono">微信向 · 750 稿宽 / 375 视口</span>
+  <div class="spacer"></div>
+  <input type="file" id="file" accept=".svg,.html,.txt" hidden>
+  <button onclick="file.click()">打开</button>
+  <button onclick="loadSample()">载入样例</button>
+  <button onclick="copyRich()" class="primary">复制富文本</button>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>源码 <span class="spacer"></span>
+      <span class="mono" id="sizeInfo">0 B</span></h2>
+    <textarea id="src" spellcheck="false" placeholder="粘贴 SVG 源码（外层 <svg viewBox='0 0 750 ...'>）"></textarea>
+    <div class="bar">
+      <button onclick="fmt()">整理缩进</button>
+      <button onclick="stripComments()">去注释</button>
+      <button onclick="download('svg')">下载 .svg</button>
+      <div class="spacer"></div>
+      <button onclick="copyRaw()">复制源码</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>预览 <span class="spacer"></span>
+      <label class="mono"><input type="checkbox" id="scrollmode" checked> 卷轴滚动</label></h2>
+    <div class="phone">
+      <div class="viewport scrollbox" id="vp"></div>
+    </div>
+    <div class="bar">
+      <button id="playBtn" onclick="togglePlay()">暂停</button>
+      <input type="range" id="scrub" min="0" max="1000" value="0" oninput="seek(this.value)">
+      <span class="mono" id="clock">0.00s</span>
+    </div>
+    <div class="hint">拖动进度条可逐帧检查时序。暂停后拖动最清晰。</div>
+  </div>
+
+  <div>
+    <div class="card" style="margin-bottom:12px">
+      <h2>体检 <span class="spacer"></span><span class="mono" id="verdict">—</span></h2>
+      <ul class="report" id="report"><li class="empty">等待源码</li></ul>
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <h2>概览</h2>
+      <div class="pad"><div class="mgrid" id="metrics"></div></div>
+    </div>
+
+    <div class="card">
+      <h2>时间轴 <span class="spacer"></span><span class="mono" id="tlInfo"></span></h2>
+      <div class="pad"><svg id="tl" height="40"></svg></div>
+      <div class="hint">蓝色 = 主时间轴（一次性动作）· 橙色 = 常驻循环 · 绿色 = 点击触发。点条可跳转。</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const src = $('src'), vp = $('vp'), scrub = $('scrub'), clock = $('clock');
+let svgEl = null, T = 1, playing = true, rafId = null;
+
+/* ---------- 预览 ---------- */
+function render(){
+  const code = src.value.trim();
+  $('sizeInfo').textContent = fmtBytes(new Blob([src.value]).size);
+  vp.innerHTML = code || '';
+  svgEl = vp.querySelector('svg');
+  if(!svgEl){ stopClock(); drawTimeline(null); return; }
+  T = parseMainDuration(svgEl);
+  scrub.max = 1000;
+  startClock();
+  drawTimeline(svgEl);
+}
+
+function parseMainDuration(svg){
+  let max = 0;
+  svg.querySelectorAll('animate,animateTransform,set').forEach(a=>{
+    if((a.getAttribute('begin')||'').indexOf('click')>=0) return;
+    const d = parseFloat(a.getAttribute('dur')||0);
+    if(d > max) max = d;
+  });
+  return max || 1;
+}
+
+/* ---------- 播放控制 ---------- */
+function togglePlay(){
+  if(!svgEl) return;
+  playing = !playing;
+  $('playBtn').textContent = playing ? '暂停' : '播放';
+  playing ? svgEl.unpauseAnimations() : svgEl.pauseAnimations();
+}
+function seek(v){
+  if(!svgEl) return;
+  svgEl.pauseAnimations();
+  playing = false; $('playBtn').textContent = '播放';
+  svgEl.setCurrentTime(T * v / 1000);
+  clock.textContent = (T * v / 1000).toFixed(2) + 's';
+}
+function startClock(){
+  stopClock();
+  const tick = () => {
+    if(svgEl && playing){
+      const t = svgEl.getCurrentTime();
+      clock.textContent = t.toFixed(2) + 's';
+      scrub.value = Math.min(1000, Math.round(t % T / T * 1000));
+    }
+    rafId = requestAnimationFrame(tick);
+  };
+  rafId = requestAnimationFrame(tick);
+}
+function stopClock(){ if(rafId) cancelAnimationFrame(rafId); rafId = null; }
+
+/* ---------- 时间轴甘特图 ---------- */
+function drawTimeline(svg){
+  const host = $('tl');
+  host.innerHTML = '';
+  if(!svg){ host.setAttribute('height',40); $('tlInfo').textContent=''; return; }
+
+  const rows = [];
+  svg.querySelectorAll('animate,animateTransform').forEach(a=>{
+    const p = a.parentNode;
+    const id = (p && p.getAttribute && p.getAttribute('data-cue')) ||
+               (p && p.tagName ? p.tagName.toLowerCase() : '?');
+    const begin = a.getAttribute('begin') || '0s';
+    const dur = parseFloat(a.getAttribute('dur')||0);
+    const kt = (a.getAttribute('keyTimes')||'').split(';').map(Number);
+    const attr = a.getAttribute('attributeName') || '';
+    const click = begin.indexOf('click') >= 0;
+    let s = 0, e = dur;
+    if(kt.length >= 4){ s = kt[1]*dur; e = kt[2]*dur; }
+    else if(kt.length === 3){ s = kt[0]*dur; e = kt[2]*dur; }
+    rows.push({id, attr, dur, s, e, click, kind: click ? 'i' : (dur >= T*0.95 ? 'm' : 'l')});
+  });
+
+  if(!rows.length){ host.setAttribute('height',40); $('tlInfo').textContent='无动画'; return; }
+
+  // 合并同一元素同一 kind 的条目
+  const seen = {}, merged = [];
+  rows.forEach(r=>{
+    const k = r.id+'|'+r.kind;
+    if(seen[k]){ const m = merged[seen[k]-1]; m.s = Math.min(m.s,r.s); m.e = Math.max(m.e,r.e); }
+    else { merged.push(r); seen[k] = merged.length; }
+  });
+
+  const W = 374, PADL = 92, RH = 20, TOP = 16, H = TOP + merged.length*RH + 14;
+  host.setAttribute('viewBox', '0 0 '+W+' '+H);
+  host.setAttribute('height', H);
+  const NS = 'http://www.w3.org/2000/svg';
+  const mk = (t,at)=>{const e=document.createElementNS(NS,t);for(const k in at)e.setAttribute(k,at[k]);return e;};
+
+  [0,0.25,0.5,0.75,1].forEach(f=>{
+    const x = PADL + (W-PADL-8)*f;
+    host.appendChild(mk('line',{x1:x,y1:8,x2:x,y2:H-8,stroke:'#eee',
+      'stroke-width':1,'stroke-dasharray':'2 3'}));
+    const tx = mk('text',{x:x,y:H-2,'font-size':9,fill:'#8b8983','text-anchor':'middle'});
+    tx.textContent = (T*f).toFixed(1)+'s';
+    host.appendChild(tx);
+  });
+
+  merged.forEach((r,i)=>{
+    const y = TOP + i*RH;
+    const sx = PADL + (W-PADL-8)*(r.s/T), ex = PADL + (W-PADL-8)*(r.e/T);
+    const color = r.kind==='m' ? '#378ADD' : r.kind==='l' ? '#EF9F27' : '#1D9E75';
+    const lb = mk('text',{x:2,y:y+11,'font-size':10,fill:'#5f5e5a'});
+    lb.textContent = (r.id.length>14 ? r.id.slice(0,13)+'…' : r.id);
+    host.appendChild(lb);
+    const bar = mk('rect',{x:sx,y:y+3,width:Math.max(3,ex-sx),height:10,rx:3,fill:color,
+      opacity:.85,style:'cursor:pointer'});
+    bar.onclick = ()=>{ scrub.value = Math.round(r.s/T*1000); seek(scrub.value); };
+    const tip = mk('title'); tip.textContent = r.id+' · '+r.attr+' · '+r.s.toFixed(2)+'s→'+r.e.toFixed(2)+'s';
+    bar.appendChild(tip);
+    host.appendChild(bar);
+    if(r.kind !== 'm'){
+      const l2 = mk('text',{x:W-6,y:y+11,'font-size':9,fill:'#8b8983','text-anchor':'end'});
+      l2.textContent = r.kind==='l' ? '循环 '+r.dur+'s' : '点击';
+      host.appendChild(l2);
+    }
+  });
+
+  $('tlInfo').textContent = merged.length + ' 条 · 周期 ' + T + 's';
+}
+
+/* ---------- 体检（validate_svg.py 的 JS 版） ---------- */
+function validate(code){
+  const errs=[], warns=[], oks=[];
+  const FORB=['script','iframe','object','embed','link','form','input','button','select','textarea','video','audio','foreignObject'];
+  FORB.forEach(t=>{
+    const n=(code.match(new RegExp('<\\s*'+t+'\\b','gi'))||[]).length;
+    if(n) errs.push('禁用标签 <'+t+'> ×'+n+' — 微信会剥离');
+  });
+  if(!errs.length) oks.push('无 script / iframe / 表单等禁用标签');
+
+  const ev=(code.match(/\son[a-z]+\s*=/gi)||[]).length + (code.match(/href\s*=\s*"javascript:/gi)||[]).length;
+  ev ? errs.push('存在 JS 入口 ×'+ev) : oks.push('无 on* 事件与 javascript:');
+
+  const ext=(code.match(/(?:href|src)\s*=\s*"(https?:)?\/\/[^"]*"/g)||[])
+    .filter(s=>s.indexOf('w3.org')<0).length + (code.match(/url\(\s*['"]?(https?:)?\/\//g)||[]).length;
+  ext ? errs.push('外链资源 ×'+ext+'，微信不加载外链') : oks.push('无外部资源引用');
+
+  const SYS=['pingfang sc','noto sans cjk sc','songti sc','noto serif cjk sc','menlo','courier new','monospace','sans-serif','serif','helvetica','arial','system-ui','-apple-system'];
+  const bad=new Set();
+  (code.match(/font-family\s*[:=]\s*['"]?([^'";>]+)/g)||[]).forEach(m=>{
+    m.split(/[:=]\s*/)[1].split(',').forEach(f=>{
+      f=f.trim().replace(/['"]/g,'').toLowerCase();
+      if(f && !SYS.some(s=>f.indexOf(s)>=0)) bad.add(f);
+    });
+  });
+  bad.size ? warns.push('疑似非系统字体：'+[...bad].slice(0,3).join('、')) : oks.push('字体均在系统字体栈内');
+
+  const vb=code.match(/viewBox\s*=\s*"([^"]+)"/);
+  if(!vb) errs.push('缺少 viewBox');
+  else{
+    const p=vb[1].trim().split(/\s+/);
+    if(p.length!==4) errs.push('viewBox 格式错误');
+    else{
+      const h=parseFloat(p[3]);
+      oks.push('viewBox 高度 '+h);
+      if(h>20000) warns.push('高度 '+h+' > 20000，建议拆卷');
+    }
+  }
+  /display\s*:\s*block/.test(code.replace(/\s/g,'')) || warns.push('外层建议 style="display:block;width:100%;height:auto"');
+
+  let n=0,bad2=0,click=0;
+  (code.match(/<(?:animate|animateTransform|set)\b[^>]*>/g)||[]).forEach(t=>{
+    n++;
+    const v=(t.match(/values\s*=\s*"([^"]*)"/)||[])[1];
+    const k=(t.match(/keyTimes\s*=\s*"([^"]*)"/)||[])[1];
+    const isClick=/begin\s*=\s*"[^"]*click/.test(t);
+    if(isClick){
+      click++;
+      if(!/fill\s*=\s*"freeze"/.test(t)) warns.push('begin=click 建议加 fill="freeze"');
+      if(!/restart\s*=\s*"always"/.test(t)) warns.push('begin=click 建议加 restart="always"');
+    }
+    if(v&&k){
+      if(v.split(';').length!==k.split(';').length){ bad2++; errs.push('values/keyTimes 段数不等：'+v.split(';').length+' vs '+k.split(';').length); return; }
+      const ks=k.split(';').map(Number);
+      if(ks.some((x,i)=>i&&x<ks[i-1])){ bad2++; errs.push('keyTimes 非单调：'+k); }
+      if(ks[0]!==0||Math.abs(ks[ks.length-1]-1)>1e-6){ bad2++; errs.push('keyTimes 需首 0 尾 1：'+k); }
+    }
+  });
+  if(!n) warns.push('没有动画标签 — 这是静态 SVG');
+  else{
+    oks.push('动画 '+n+' 条（点击触发 '+click+' 条）');
+    if(!bad2) oks.push('SMIL values/keyTimes 全部匹配');
+  }
+
+  const bytes=new Blob([code]).size;
+  if(bytes>1024*1024) errs.push('源码 '+(bytes/1048576).toFixed(2)+' MB，超过 1MB');
+  else if(bytes>512*1024) warns.push('源码 '+Math.round(bytes/1024)+' KB，偏大');
+  else oks.push('源码 '+Math.round(bytes/1024)+' KB');
+
+  const small=(code.match(/font-size\s*=\s*"([^"]+)"/g)||[])
+    .map(s=>parseFloat(s.replace(/[^\d.]/g,''))).filter(x=>x>0&&x<22).length;
+  if(small) warns.push('font-size<22 的 '+small+' 处（手机端可能不可读）');
+
+  return {errs,warns,oks,n,click,bytes};
+}
+
+function renderReport(r){
+  const ul=$('report');
+  ul.innerHTML='';
+  [['e',r.errs],['w',r.warns],['o',r.oks]].forEach(([k,arr])=>{
+    arr.forEach(t=>{
+      const li=document.createElement('li');
+      li.innerHTML='<span class="tag '+k+'">'+(k==='e'?'ERROR':k==='w'?'warn':'ok')+'</span><span>'+esc(t)+'</span>';
+      ul.appendChild(li);
+    });
+  });
+  $('verdict').textContent = r.errs.length ? r.errs.length+' error · 不可发布' : (r.warns.length? '0 error / '+r.warns.length+' warn' : '0 error / 0 warn');
+  $('verdict').style.color = r.errs.length ? 'var(--err)' : (r.warns.length ? 'var(--warn)' : 'var(--ok)');
+  $('metrics').innerHTML = [
+    ['动画标签', r.n], ['点击触发', r.click],
+    ['源码体积', Math.round(r.bytes/1024)+' KB'], ['主周期', T+'s']
+  ].map(([k,v])=>'<div class="mcell"><b>'+v+'</b><span>'+k+'</span></div>').join('');
+}
+
+/* ---------- 工具 ---------- */
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function fmtBytes(b){ return b<1024?b+' B':b<1048576?Math.round(b/1024)+' KB':(b/1048576).toFixed(2)+' MB'; }
+
+function fmt(){
+  let s = src.value.replace(/>\s*</g,'>\n<');
+  let out='', depth=0;
+  s.split('\n').forEach(line=>{
+    line=line.trim(); if(!line) return;
+    if(/^<\//.test(line)) depth=Math.max(0,depth-1);
+    out += '  '.repeat(depth)+line+'\n';
+    if(/^<[^/]/.test(line) && !/\/>$/.test(line) && !/^<(?:animate|animateTransform|set|rect|circle|line|path|text|tspan|stop|use|image|ellipse|polygon|polyline)\b/.test(line)) depth++;
+  });
+  src.value = out; render();
+}
+function stripComments(){ src.value = src.value.replace(/<!--[\s\S]*?-->/g,''); render(); }
+
+function download(kind){
+  const code = src.value;
+  const blob = kind==='svg' ? new Blob([code],{type:'image/svg+xml'})
+    : new Blob(['<!DOCTYPE html><meta charset="utf-8"><body style="margin:0;background:#efe8d8">'+code],
+               {type:'text/html'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download = kind==='svg' ? 'zine.svg' : 'zine-preview.html';
+  a.click();
+}
+async function copyRaw(){
+  await navigator.clipboard.writeText(src.value);
+  toast('源码已复制');
+}
+async function copyRich(){
+  const code = src.value.trim();
+  const html = '<section style="font-size:16px;line-height:1.75;">'
+    + code.replace(/<svg\b/,'<svg style="display:block;width:100%;height:auto" ') + '</section>';
+  try{
+    await navigator.clipboard.write([
+      new ClipboardItem({'text/html': new Blob([html],{type:'text/html'}),
+                         'text/plain': new Blob([code],{type:'text/plain'})})
+    ]);
+    toast('富文本已复制 → 粘进公众号编辑器');
+  }catch(e){ await copyRaw(); }
+}
+function toast(msg){
+  const b=document.querySelector('header button.primary');
+  const old=b.textContent; b.textContent=msg;
+  setTimeout(()=>b.textContent=old,1600);
+}
+
+/* ---------- 事件 ---------- */
+let deb=null;
+src.addEventListener('input',()=>{ clearTimeout(deb); deb=setTimeout(render,260); });
+$('file').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>{ src.value=r.result; render(); }; r.readAsText(f);
+});
+$('scrollmode').addEventListener('change',e=>{
+  vp.classList.toggle('scrollbox', e.target.checked);
+  vp.style.maxHeight = e.target.checked ? '60vh' : 'none';
+  vp.style.overflowY = e.target.checked ? 'auto' : 'visible';
+});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{
+  e.preventDefault(); const f=e.dataTransfer.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>{ src.value=r.result; render(); }; r.readAsText(f);
+});
+
+function loadSample(){
+  src.value = SAMPLE; render();
+}
+
+const SAMPLE = `<svg font-family="'PingFang SC','Noto Sans CJK SC',sans-serif" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 1600" aria-label="zine" style="display:block;width:100%;height:auto;overflow:hidden;">
+  <rect x="0" y="0" width="750" height="1600" fill="#efe8d8"/>
+  <g data-cue="cover-title">
+    <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0;0.0807;1" begin="0s" dur="22.3s" repeatCount="indefinite"/>
+    <text x="74" y="220" fill="#1c1b18" font-size="64" font-weight="700" font-family="'Songti SC','Noto Serif CJK SC',serif">一份从上下文窗口</text>
+  </g>
+  <g data-cue="cover-sub">
+    <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.0717;0.1256;1" begin="0s" dur="22.3s" repeatCount="indefinite"/>
+    <animateTransform type="translate" values="0 12;0 12;0 0;0 0" keyTimes="0;0.0717;0.1256;1" begin="0s" dur="22.3s" repeatCount="indefinite"/>
+    <text x="74" y="300" fill="#d4532a" font-size="30">里面寄出来的小报</text>
+  </g>
+  <g data-cue="orb">
+    <animateTransform type="translate" values="0 0;0 -12;0 0" begin="0s" dur="3.6s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="1;1;0;1;1" keyTimes="0;.92;.95;.98;1" begin="0s" dur="4.2s" repeatCount="indefinite"/>
+    <circle cx="186" cy="520" r="96" fill="#f3eee2"/>
+    <circle cx="186" cy="520" r="22" fill="#d4532a"/>
+  </g>
+  <g data-cue="cursor">
+    <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;.5;.5;1" begin="0s" dur="1.1s" repeatCount="indefinite"/>
+    <rect x="300" y="686" width="16" height="30" fill="#1c1b18"/>
+  </g>
+  <text x="74" y="700" fill="#1c1b18" font-size="26" font-weight="700">你好。</text>
+  <text x="74" y="900" fill="#857f73" font-size="22">[ 点一下，看它们在看谁 ]</text>
+  <g visibility="hidden" stroke-dasharray="100 100" stroke-dashoffset="100">
+    <animate attributeName="visibility" values="hidden;visible;visible" keyTimes="0;0;1" calcMode="discrete" begin="click" dur="5.25s" fill="freeze" restart="always"/>
+    <animate attributeName="stroke-dashoffset" values="100;100;0;0" keyTimes="0;0;0.19;1" begin="click" dur="5.25s" fill="freeze" restart="always"/>
+    <g data-cue="attn-1"><path d="M180 960Q300 1100 420 1000" pathLength="100" fill="none" stroke="#d4532a" stroke-width="6" stroke-linecap="round"/></g>
+    <g visibility="hidden" stroke-dasharray="100 100" stroke-dashoffset="100">
+      <animate attributeName="visibility" values="hidden;visible;visible" keyTimes="0;0.0229;1" calcMode="discrete" begin="click" dur="5.25s" fill="freeze" restart="always"/>
+      <animate attributeName="stroke-dashoffset" values="100;100;0;0" keyTimes="0;0.0229;0.2129;1" begin="click" dur="5.25s" fill="freeze" restart="always"/>
+      <g data-cue="attn-2"><path d="M200 1000Q340 1160 480 1040" pathLength="100" fill="none" stroke="#d4532a" stroke-width="6" stroke-linecap="round"/></g>
+      <rect x="0" y="0" width="750" height="1600" fill="#000" fill-opacity="0" visibility="visible" pointer-events="all"/>
+    </g>
+  </g>
+</svg>`;
+
+loadSample();
+</script>
+</body>
+</html>

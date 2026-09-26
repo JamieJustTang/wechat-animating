@@ -1,0 +1,59 @@
+{
+  "timeline": { "duration": 22.3, "loop": true },
+
+  "cues": [
+    { "id": "p1-title",  "at": 0.0,  "dur": 2.0, "effect": "fade-in" },
+    { "id": "p1-sub",    "at": 2.2,  "dur": 1.4, "effect": "rise" },
+
+    { "id": "p2-1",      "at": 3.8,  "dur": 0.3, "effect": "appear" },
+    { "id": "p2-2",      "at": 4.3,  "dur": 0.3, "effect": "appear" },
+    { "id": "p2-3",      "at": 4.8,  "dur": 0.3, "effect": "appear" },
+    { "id": "p2-answer", "at": 5.6,  "dur": 1.4, "effect": "fade-in" },
+    { "id": "p2-code",   "at": 7.0,  "dur": 1.6, "effect": "fade-in" },
+
+    { "id": "p3-term",   "at": 8.6,  "dur": 1.4, "effect": "appear" },
+
+    { "id": "p5-title",  "at": 10.4, "dur": 1.6, "effect": "fade-in" },
+    { "id": "p5-sub",    "at": 11.6, "dur": 1.0, "effect": "fade-in" },
+
+    { "id": "p6-b1",     "at": 12.4, "dur": 0.8, "effect": "appear" },
+    { "id": "p6-b2",     "at": 13.0, "dur": 0.8, "effect": "appear" },
+    { "id": "p6-b3",     "at": 13.6, "dur": 0.8, "effect": "appear" },
+    { "id": "p6-a1",     "at": 14.4, "dur": 0.8, "effect": "draw", "length": 100 },
+    { "id": "p6-a2",     "at": 14.6, "dur": 0.8, "effect": "draw", "length": 100 },
+    { "id": "p6-a3",     "at": 14.8, "dur": 0.8, "effect": "draw", "length": 100 },
+    { "id": "p6-out",    "at": 15.6, "dur": 1.0, "effect": "fade-in" },
+
+    { "id": "p10-c1",    "at": 16.6, "dur": 0.3, "effect": "appear" },
+    { "id": "p10-c2",    "at": 17.2, "dur": 0.3, "effect": "appear" },
+    { "id": "p10-c3",    "at": 17.8, "dur": 0.3, "effect": "appear" },
+    { "id": "p10-c4",    "at": 18.4, "dur": 0.3, "effect": "appear" },
+    { "id": "p10-ok",    "at": 19.2, "dur": 1.2, "effect": "fade-in" },
+    { "id": "p10-steps", "at": 20.4, "dur": 1.2, "effect": "fade-in" }
+  ],
+
+  "typewriter": [
+    { "id": "p3-hello", "at": 8.8, "per": 0.3, "cursor": "p3-cursor" }
+  ],
+
+  "loops": [
+    { "id": "p1-node",  "effect": "breathe", "dur": 3.6, "dy": -12 },
+    { "id": "p1-node",  "effect": "flicker", "dur": 4.2 },
+    { "id": "p3-cursor","effect": "blink",   "dur": 1.1 },
+    { "id": "p4-n1",    "effect": "breathe", "dur": 3.6, "dy": -10 },
+    { "id": "p4-n2",    "effect": "breathe", "dur": 4.0, "dy": -8 },
+    { "id": "p4-n3",    "effect": "breathe", "dur": 4.4, "dy": -12 },
+    { "id": "p4-n4",    "effect": "breathe", "dur": 3.2, "dy": -9 },
+    { "id": "p5-q",     "effect": "swing",   "dur": 2.6, "amp": 9, "pivot": [0, -40] }
+  ],
+
+  "interactive": [
+    { "ids": ["p4-l1", "p4-l2", "p4-l3", "p4-l4", "p4-l5"],
+      "trigger": "click",
+      "effect": "draw-stagger",
+      "stagger": 0.12,
+      "dur": 5.25,
+      "length": 100,
+      "hotspot": [0, 2100, 750, 700] }
+  ]
+}
