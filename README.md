@@ -4,8 +4,10 @@
 
 参考样本：AGI Hunt《Claude by Claude》（2026-09）——`viewBox="0 0 750 11980"`、287KB 源码、532 个 `<text>`、**0 张位图**、187 个动画标签。本套件是对它的完整逆向 + 可复现的工程化封装。
 
+**[▶ 在线演示](https://JamieJustTang.github.io/wechat-animating/)** —— 用本套件做的 10 屏示例《它是怎么动起来的》，动画会自动播放，滚到交互幕**点一下画面**。
+
 <p align="center">
-  <img src="docs/screens.png" width="420" alt="example zine 四屏截图">
+  <a href="https://JamieJustTang.github.io/wechat-animating/"><img src="docs/screens.png" width="420" alt="example zine 四屏截图（点击打开在线演示）"></a>
 </p>
 
 ## 为什么只能用 SMIL
@@ -73,6 +75,8 @@ python3 ../wechat-animating-editor/scripts/serve.py
 </p>
 
 ## 示例：《它是怎么动起来的》
+
+**[在线版直接看 →](https://JamieJustTang.github.io/wechat-animating/)**（源文件 `docs/demo.html`，即 `zine.svg` 套一层 375px 微信视口外壳）
 
 `examples/how-it-moves/` 是一个用本套件做的 10 屏 zine，本身就在讲这套套件的原理：
 
