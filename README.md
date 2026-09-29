@@ -1,14 +1,22 @@
 # wechat-animating
 
-**微信公众号「长卷 SVG zine」制作套件** —— 让 AI agent 产出能在公众号正文里自动播放、可点击的**纯矢量动画长图**。
+**让公众号文章动起来，也让读者点一下。**
 
-参考样本：AGI Hunt《Claude by Claude》（2026-09）——`viewBox="0 0 750 11980"`、287KB 源码、532 个 `<text>`、**0 张位图**、187 个动画标签。本套件是对它的完整逆向 + 可复现的工程化封装。
+`wechat-animating` 是一套给 AI agent 用的 Skill：从分镜开始，制作能在公众号正文里自动播放、响应点击的纯矢量 SVG 长卷。时间轴交给脚本编译，发布前用本地编辑器预览和校验。
 
-**[▶ 在线演示](https://JamieJustTang.github.io/wechat-animating/)** —— 用本套件做的 10 屏示例《它是怎么动起来的》，动画会自动播放，滚到交互幕**点一下画面**。
+**[▶ 打开在线演示《它是怎么动起来的》](https://JamieJustTang.github.io/wechat-animating/)**：10 屏长卷会自动播放。滚到交互画面时，点一下，看看连线如何生长。
 
 <p align="center">
   <a href="https://JamieJustTang.github.io/wechat-animating/"><img src="docs/screens.png" width="420" alt="example zine 四屏截图（点击打开在线演示）"></a>
 </p>
+
+| 想做的效果 | 这套 Skill 怎么做 |
+|---|---|
+| 标题入场、逐字打字、图形呼吸 | 用时间轴安排自动播放的 SVG 动画 |
+| 点一下揭晓内容、长出连线 | 用点击触发的 SVG 动画回应读者 |
+| 动画不动、手机显示不对 | 编译、校验，再用 375px 视口预览 |
+
+制作方法参考了 AGI Hunt《Claude by Claude》（2026-09）：样本主体为 `750×11980` 的纯矢量长卷，源码 287KB，含 532 个 `<text>` 和 187 个动画标签。本仓库把分析结果整理成可复用的制作流程。
 
 ## 为什么只能用 SMIL
 
@@ -88,13 +96,15 @@ python3 ../wechat-animating-editor/scripts/serve.py
 python3 shot.py 8.95 9.2 11.0   # 冻结到指定时刻逐帧截图
 ```
 
-## 小红书配图
+## 三张图，看懂它能怎么玩
 
-- [图 1：公众号只能发图文？现在，交互动画玩起来！](social/xiaohongshu/01-pain-points.png)
-- [图 2：点击交互与打字机 Practice](social/xiaohongshu/02-practice-example.png)
-- [图 3：自动播放动效 Practice](social/xiaohongshu/03-auto-play-practices.png)
+从“为什么做”到“点一下会怎样”，再到“不点也会动”。
 
-三张竖版 PNG 可直接用于图文发布。后两张为玩法示意图；可操作的动画请打开上方在线演示。
+| 01 · 为什么做 | 02 · 点击与打字机 | 03 · 自动播放 |
+|---|---|---|
+| [![公众号只能发图文？现在，交互动画玩起来！](social/xiaohongshu/01-pain-points.png)](social/xiaohongshu/01-pain-points.png) | [![点击长出连线、揭晓答案、逐字打字](social/xiaohongshu/02-practice-example.png)](social/xiaohongshu/02-practice-example.png) | [![路径绘制、图形呼吸摇摆、内容滑入定格](social/xiaohongshu/03-auto-play-practices.png)](social/xiaohongshu/03-auto-play-practices.png) |
+
+点击图片可看原图。后两张展示玩法；想亲手试试，请打开上方的在线演示。
 
 ## 已知限制
 
