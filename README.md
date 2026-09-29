@@ -90,10 +90,10 @@ python3 shot.py 8.95 9.2 11.0   # 冻结到指定时刻逐帧截图
 
 ## 小红书配图
 
-- [图 1：这个 Skill 解决什么痛点](social/xiaohongshu/01-pain-points.png)
-- [图 2：Practice 示例《它是怎么动起来的》](social/xiaohongshu/02-practice-example.png)
+- [图 1：公众号只能发图文？现在，交互动画玩起来！](social/xiaohongshu/01-pain-points.png)
+- [图 2：六种动画与交互 Practice](social/xiaohongshu/02-practice-example.png)
 
-两张竖版 PNG 可直接用于图文发布。第二张为案例说明图；可操作的动画请打开上方在线演示。
+两张竖版 PNG 可直接用于图文发布。第二张为玩法示意图；可操作的动画请打开上方在线演示。
 
 ## 已知限制
 
